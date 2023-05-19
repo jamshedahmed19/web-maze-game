@@ -1,0 +1,56 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    text-align: center;
+  }
+  
+  h1 {
+    color: #333;
+  }
+  
+  #playerId, #gameStatus {
+    color: #666;
+  }
+  
+  #startGameButton {
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+  }
+  
+  /* Maze styles */
+  #mazeContainer {
+    margin: auto;
+  }
+  
+  .cell {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #000;
+  }
+  
+  .path {
+    background-color: #fff;
+  }
+  
+  .wall {
+    background-color: #000;
+  }
+  
+  .player {
+    background-color: #f00;
+  }
+
+  .cell.goal {
+    background-color: gold;
+}
+
+  
+  /* Add a clear line break after each row of the maze */
+  #mazeContainer br {
+    clear: both;
+    line-height: 0;
+    height: 0;
+  }
+  
