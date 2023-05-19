@@ -166,7 +166,6 @@ function renderMaze(mazeContainer, gameState, uid) {
 
       mazeContainer.appendChild(cell);
     }
-    mazeContainer.appendChild(document.createElement("br"));
   }
 }
 
