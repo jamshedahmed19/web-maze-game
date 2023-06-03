@@ -195,6 +195,7 @@ function movePlayer(uid, direction) {
       if (doc.exists) {
         const gameState = doc.data();
         const player = gameState.players[uid];
+        const goal = gameState.goal;
         let maze = matrixDecode(gameState.maze);
 
         // Determine the player's new position based on the direction of movement
@@ -224,11 +225,47 @@ function movePlayer(uid, direction) {
           newY < maze.length &&
           maze[newY][newX] !== 1
         ) {
-          // Update the player's position in the game state
-          const newPlayerState = {};
-          newPlayerState[`players.${uid}.x`] = newX;
-          newPlayerState[`players.${uid}.y`] = newY;
-          gameStateRef.update(newPlayerState);
+          console.log("Moving player to: ", newX, newY, goal,gameState,  maze);
+          if (newX === goal.x && newY === goal.y) {
+            // If the player has reached the goal, update the position and set the game status to "won"
+            gameStateRef
+              .update({
+                [`players.${uid}`]: { x: newX, y: newY },
+                status: "won",
+              })
+              .then(() => {
+                // Update winning-player p element with the winning player's ID
+                document.getElementById(
+                  "winning-player"
+                ).textContent = `Player: ${uid} Won`;
+
+                // winner element image to the winning player's image
+                document.getElementById("winner").src = `assets/victoryP1.png`;
+
+                // Remove class hidden from win-page element
+                document.getElementById("win-page").classList.remove("hidden");
+
+                // Hide the maze container
+                document.getElementById("mazeContainer").style.display = "none";
+
+                console.log("Document successfully updated!");
+              })
+              .catch((error) => {
+                console.error("Error updating document: ", error);
+              });
+          } else {
+            // Update the player's position in the game state
+            gameStateRef
+              .update({
+                [`players.${uid}`]: { x: newX, y: newY },
+              })
+              .then(() => {
+                console.log("Document successfully updated!");
+              })
+              .catch((error) => {
+                console.error("Error updating document: ", error);
+              });
+          }
         }
       } else {
         console.log("No such document!");
@@ -244,7 +281,7 @@ document.getElementById("startGameButton").addEventListener("click", () => {
   const uid = firebase.auth().currentUser.uid;
 
   // Generate the maze and encode it
-  let maze = generateMaze(10, 10);
+  let maze = generateMaze(20, 20);
   let mazeStr = matrixEncode(maze);
   const players = {};
   // set player positions randomly within the maze but not on walls
@@ -276,61 +313,71 @@ document.getElementById("startGameButton").addEventListener("click", () => {
     });
 });
 
-function generateMaze(width, height) {
-  let maze = new Array(height).fill(0).map(() => new Array(width).fill(1));
+function generateMaze(size) {
+  // Create an empty grid
+  const maze = [];
+  for (let i = 0; i < size; i++) {
+    maze[i] = [];
+    for (let j = 0; j < size; j++) {
+      maze[i][j] = 1; // Initialize all cells as walls
+    }
+  }
 
-  let stack = [];
-  let visited = new Array(height)
-    .fill(false)
-    .map(() => new Array(width).fill(false));
+  // Starting position
+  const startRow = Math.floor(Math.random() * size);
+  const startCol = Math.floor(Math.random() * size);
 
-  // Choose a random start point and mark it as visited
-  let startX = Math.floor(Math.random() * width);
-  let startY = Math.floor(Math.random() * height);
-  maze[startY][startX] = 0;
-  visited[startY][startX] = true;
-  stack.push([startX, startY]);
-
-  let directions = [
-    [-1, 0],
-    [1, 0],
-    [0, -1],
-    [0, 1],
-  ]; // Left, right, up, down
+  // Create a stack to track visited cells
+  const stack = [];
+  stack.push([startRow, startCol]);
 
   while (stack.length > 0) {
-    let [x, y] = stack[stack.length - 1]; // Get the current cell
+    const [currentRow, currentCol] = stack.pop();
+    maze[currentRow][currentCol] = 0; // Set the current cell as a path
 
-    // Get all unvisited neighbours
-    let neighbours = directions
-      .map(([dx, dy]) => [x + dx, y + dy])
-      .filter(
-        ([nx, ny]) =>
-          nx >= 0 &&
-          nx < width &&
-          ny >= 0 &&
-          ny < height && // Within bounds
-          !visited[ny][nx] && // Not visited
-          directions
-            .map(([dx, dy]) => [nx + dx, ny + dy]) // Has at least two wall neighbours
-            .filter(([x, y]) => x >= 0 && x < width && y >= 0 && y < height)
-            .map(([x, y]) => maze[y][x])
-            .filter((cell) => cell === 1).length >= 2
-      );
+    // Get the neighbors of the current cell
+    const neighbors = getNeighbors(currentRow, currentCol, size);
 
-    if (neighbours.length > 0) {
-      // Choose a random neighbour and carve a path to it
-      let [nx, ny] = neighbours[Math.floor(Math.random() * neighbours.length)];
-      maze[ny][nx] = 0;
-      visited[ny][nx] = true;
-      stack.push([nx, ny]);
-    } else {
-      // No unvisited neighbours, backtrack
-      stack.pop();
+    // Shuffle the neighbors randomly
+    shuffle(neighbors);
+
+    for (let [row, col] of neighbors) {
+      if (maze[row][col] === 1) {
+        // Mark the neighbor as visited
+        maze[row][col] = 0;
+
+        // Push the neighbor to the stack
+        stack.push([row, col]);
+
+        // Remove the wall between the current cell and the neighbor
+        const wallRow = currentRow + (row - currentRow) / 2;
+        const wallCol = currentCol + (col - currentCol) / 2;
+        maze[wallRow][wallCol] = 0;
+      }
     }
   }
 
   return maze;
+}
+
+// Function to get the neighbors of a cell
+function getNeighbors(row, col, size) {
+  const neighbors = [];
+
+  if (row - 2 >= 0) neighbors.push([row - 2, col]);
+  if (row + 2 < size) neighbors.push([row + 2, col]);
+  if (col - 2 >= 0) neighbors.push([row, col - 2]);
+  if (col + 2 < size) neighbors.push([row, col + 2]);
+
+  return neighbors;
+}
+
+// Function to shuffle an array in place
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
 }
 
 function matrixEncode(matrix) {

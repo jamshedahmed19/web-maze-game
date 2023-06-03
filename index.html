@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <link rel="stylesheet" type="text/css" href="index.css">
     <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-auth.js"></script>
 </head>
+
 <body>
     <h1>Maze Game</h1>
     <p id="playerId">Loading...</p>
     <p id="gameStatus">Waiting for game to start...</p>
     <button id="startGameButton" disabled>Start Game</button>
     <div id="mazeContainer"></div>
+
+    <div id="win-page" class="hidden">
+        <img id="winner">
+        <p id="winning-player"></p>
+    </div>
     <script src="index.js"></script>
 </body>
+
 </html>

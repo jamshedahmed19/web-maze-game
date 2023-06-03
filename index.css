@@ -1,11 +1,26 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  text-align: center;
+  background-image: url("./assets/bg.jpg");
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
 }
 
 h1 {
-  color: #333;
+  font-size: 50px;
+  color: white;
+  margin-bottom: 20px;
 }
 
 #playerId,
@@ -47,8 +62,7 @@ body {
 #mazeContainer {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-  grid-gap: 2px;
-  max-width: 550px;
+  max-width: 1000px;
   padding: 10px;
   background-color: rgba(255, 255, 255, 0.5);
   border-radius: 10px;
@@ -60,19 +74,32 @@ body {
   align-items: center;
   justify-content: center;
   height: 50px;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 5px;
+  background-color: rgba(255, 255, 255, 1);
   transition: background-color 0.3s ease;
 }
 
 .wall {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 1);
 }
 
 .player {
-  background-color: rgba(255, 0, 0, 0.8);
+  background-attachment: initial;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-color: rgba(255, 0, 0, 1);
+  background-image: url("./assets/player1.png");
 }
 
 .goal {
-  background-color: rgba(255, 215, 0, 0.8);
+  background-attachment: initial;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-color: rgba(255, 215, 0, 1);
+  background-image: url("./assets/destination.png");
+}
+
+.hidden {
+  display: none;
 }
