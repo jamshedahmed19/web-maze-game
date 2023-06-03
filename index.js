@@ -30,42 +30,38 @@ auth.onAuthStateChanged((user) => {
     document.getElementById("playerId").textContent = "Player ID: " + uid;
 
     // enable start game button
-    document.getElementById("startGameButton").disabled = false;
+    // document.getElementById("startGameButton").disabled = false;
 
-    // Get the current game state
-    const gameStateRef = db.collection("gameState").doc("maze");
-    gameStateRef.get().then((doc) => {
-      if (doc.exists) {
-        let mazeStr = doc.data().maze;
-        let maze = matrixDecode(mazeStr);
+    // Listen to changes in game state, if atleast 2 players are searching for a game, start the game
+    // otherwise, wait for more players to join and update the player status to "searching"
+    db.collection("gameState")
+      .doc("maze")
+      .collection("players")
+      .onSnapshot((querySnapshot) => {
+        const playerCount = querySnapshot.size;
 
-        // Find all edge cells that are paths
-        let edgeCells = [];
-        for (let i = 0; i < maze.length; i++) {
-          if (maze[i][0] === 0) edgeCells.push([i, 0]);
-          if (maze[i][maze[0].length - 1] === 0)
-            edgeCells.push([i, maze[0].length - 1]);
-        }
-        for (let j = 0; j < maze[0].length; j++) {
-          if (maze[0][j] === 0) edgeCells.push([0, j]);
-          if (maze[maze.length - 1][j] === 0)
-            edgeCells.push([maze.length - 1, j]);
+        if (playerCount >= 2) {
+          document.getElementById("startGameButton").disabled = false;
         }
 
-        // If there are at least two edge cells, assign one to this player
-        if (edgeCells.length >= 2) {
-          let randomIndex = Math.floor(Math.random() * edgeCells.length);
-          let [y, x] = edgeCells[randomIndex];
+        // Update the player status to "searching"
 
-          // Add user to players in game state
-          const playerRef = gameStateRef.collection("players").doc(uid);
-          playerRef.set({
-            x: x,
-            y: y,
+        db.collection("gameState")
+          .doc("maze")
+
+          .collection("players")
+          .doc(uid)
+          .set({
+            status: "searching",
+          })
+
+          .then(() => {
+            console.log("Document successfully written!");
+          })
+          .catch((error) => {
+            console.error("Error writing document: ", error);
           });
-        }
-      }
-    });
+      });
   } else {
     // User is signed out. This should not normally happen with anonymous sign-in.
     document.getElementById("playerId").textContent = "Not signed in";
@@ -113,6 +109,7 @@ function startGame(uid) {
           let [y, x] = edgeCells[randomIndex];
 
           // Set the goal in the game state
+          console.log("Setting goal to: ", x, y);
           db.collection("gameState").doc("maze").update({
             goal: { x, y },
           });
@@ -161,6 +158,10 @@ function renderMaze(mazeContainer, gameState, uid) {
       for (let playerId in players) {
         if (players[playerId].x === x && players[playerId].y === y) {
           cell.classList.add("player");
+
+          if (playerId === uid) {
+            cell.classList.add("current-player");
+          }
         }
       }
 
@@ -189,6 +190,7 @@ document.addEventListener("keydown", (event) => {
 
 function movePlayer(uid, direction) {
   const gameStateRef = db.collection("gameState").doc("maze");
+  const currentUser = firebase.auth().currentUser;
   gameStateRef
     .get()
     .then((doc) => {
@@ -225,7 +227,7 @@ function movePlayer(uid, direction) {
           newY < maze.length &&
           maze[newY][newX] !== 1
         ) {
-          console.log("Moving player to: ", newX, newY, goal,gameState,  maze);
+          console.log("Moving player to: ", newX, newY, goal, gameState, maze);
           if (newX === goal.x && newY === goal.y) {
             // If the player has reached the goal, update the position and set the game status to "won"
             gameStateRef
@@ -234,19 +236,40 @@ function movePlayer(uid, direction) {
                 status: "won",
               })
               .then(() => {
-                // Update winning-player p element with the winning player's ID
-                document.getElementById(
-                  "winning-player"
-                ).textContent = `Player: ${uid} Won`;
-
                 // winner element image to the winning player's image
-                document.getElementById("winner").src = `assets/victoryP1.png`;
+                if (uid === currentUser.uid) {
+                  document.getElementById(
+                    "winner"
+                  ).src = `assets/victoryP1.png`;
+
+                  // Update winning-player p element with the winning player's ID
+                  document.getElementById(
+                    "winning-player"
+                  ).textContent = `You Won`;
+                } else {
+                  document.getElementById(
+                    "winner"
+                  ).src = `assets/victoryP2.png`;
+
+                  // Update winning-player p element with the winning player's ID
+                  document.getElementById(
+                    "winning-player"
+                  ).textContent = `You Lost`;
+                }
 
                 // Remove class hidden from win-page element
                 document.getElementById("win-page").classList.remove("hidden");
 
                 // Hide the maze container
-                document.getElementById("mazeContainer").style.display = "none";
+                document.getElementById("mazeContainer").display = "none";
+
+                // Remove Hidden class from play again button
+                document
+                  .getElementById("playAgainButton")
+                  .classList.remove("hidden");
+
+                // Enable play again game button
+                document.getElementById("playAgainButton").disabled = false;
 
                 console.log("Document successfully updated!");
               })
@@ -278,21 +301,9 @@ function movePlayer(uid, direction) {
 
 // Event listener for the start game button
 document.getElementById("startGameButton").addEventListener("click", () => {
-  const uid = firebase.auth().currentUser.uid;
-
   // Generate the maze and encode it
   let maze = generateMaze(20, 20);
   let mazeStr = matrixEncode(maze);
-  const players = {};
-  // set player positions randomly within the maze but not on walls
-
-  let x = Math.floor(Math.random() * maze[0].length);
-  let y = Math.floor(Math.random() * maze.length);
-  while (maze[y][x] === 1) {
-    x = Math.floor(Math.random() * maze[0].length);
-    y = Math.floor(Math.random() * maze.length);
-  }
-  players[uid] = { x: x, y: y };
 
   // Start the game
   db.collection("gameState")
@@ -300,18 +311,132 @@ document.getElementById("startGameButton").addEventListener("click", () => {
     .set({
       status: "ongoing",
       maze: mazeStr,
-      players: players,
+      players: {},
     })
     .then(() => {
       console.log("Document successfully written!");
-      // hide start game button
-      document.getElementById("startGameButton").style.display = "none";
-      startGame(uid);
+
+      const gameStateRef = db.collection("gameState").doc("maze");
+      gameStateRef
+        .collection("players")
+        .get()
+        .then((querySnapshot) => {
+          querySnapshot.forEach((doc) => {
+            let uid = doc.id;
+            let x = Math.floor(Math.random() * maze[0].length);
+            let y = Math.floor(Math.random() * maze.length);
+            while (maze[y][x] === 1) {
+              x = Math.floor(Math.random() * maze[0].length);
+              y = Math.floor(Math.random() * maze.length);
+            }
+            gameStateRef.update({
+              [`players.${uid}`]: { x: x, y: y },
+            });
+          });
+          const uid = firebase.auth().currentUser.uid;
+          // hide start game button
+          document.getElementById("startGameButton").style.display = "none";
+          startGame(uid);
+        });
     })
     .catch((error) => {
       console.error("Error writing document: ", error);
     });
 });
+
+document.getElementById("playAgainButton").addEventListener("click", () => {
+  const uid = firebase.auth().currentUser.uid;
+
+  // Generate the maze and encode it
+  let maze = generateMaze(20, 20);
+  let mazeStr = matrixEncode(maze);
+
+  // Get all players from the collection
+  db.collection("gameState")
+    .doc("maze")
+    .collection("players")
+    .get()
+    .then((querySnapshot) => {
+      const players = {};
+
+      querySnapshot.forEach((doc) => {
+        let playerId = doc.id;
+        // Determine a random starting position for each player
+        let x = Math.floor(Math.random() * maze[0].length);
+        let y = Math.floor(Math.random() * maze.length);
+
+        while (maze[y][x] === 1) {
+          x = Math.floor(Math.random() * maze[0].length);
+          y = Math.floor(Math.random() * maze.length);
+        }
+
+        players[playerId] = { x: x, y: y };
+      });
+
+      // Start the game
+      db.collection("gameState")
+        .doc("maze")
+        .set({
+          status: "ongoing",
+          maze: mazeStr,
+          players: players,
+        })
+        .then(() => {
+          console.log("Document successfully written!");
+
+          // Hide win page
+          document.getElementById("win-page").classList.add("hidden");
+
+          // Show the maze container
+          document.getElementById("mazeContainer").display = "grid";
+
+          // hide play again button
+          document.getElementById("playAgainButton").style.display = "none";
+
+          // Show the start game button
+          document.getElementById("startGameButton").style.display = "block";
+          startGame(uid);
+        })
+        .catch((error) => {
+          console.error("Error writing document: ", error);
+        });
+    });
+});
+
+// document.getElementById("startGameButton").addEventListener("click", () => {
+//   const uid = firebase.auth().currentUser.uid;
+
+//   // Generate the maze and encode it
+//   let maze = generateMaze(20, 20);
+//   let mazeStr = matrixEncode(maze);
+//   const players = {};
+
+//   let x = Math.floor(Math.random() * maze[0].length);
+//   let y = Math.floor(Math.random() * maze.length);
+//   while (maze[y][x] === 1) {
+//     x = Math.floor(Math.random() * maze[0].length);
+//     y = Math.floor(Math.random() * maze.length);
+//   }
+//   players[uid] = { x: x, y: y };
+
+//   // Start the game
+//   db.collection("gameState")
+//     .doc("maze")
+//     .set({
+//       status: "ongoing",
+//       maze: mazeStr,
+//       players: players,
+//     })
+//     .then(() => {
+//       console.log("Document successfully written!");
+//       // hide start game button
+//       document.getElementById("startGameButton").style.display = "none";
+//       startGame(uid);
+//     })
+//     .catch((error) => {
+//       console.error("Error writing document: ", error);
+//     });
+// });
 
 function generateMaze(size) {
   // Create an empty grid

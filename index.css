@@ -28,7 +28,9 @@ h1 {
   color: #666;
 }
 
-#startGameButton {
+#startGameButton, 
+#playAgainButton
+{
   margin-bottom: 20px;
   padding: 10px 20px;
   font-size: 16px;
@@ -61,8 +63,8 @@ body {
 
 #mazeContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-  max-width: 1000px;
+  grid-template-columns: repeat(auto-fit, minmax(25px, 1fr));
+  max-width: 500px;
   padding: 10px;
   background-color: rgba(255, 255, 255, 0.5);
   border-radius: 10px;
@@ -73,7 +75,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 50px;
+  height: 25px;
   background-color: rgba(255, 255, 255, 1);
   transition: background-color 0.3s ease;
 }
@@ -88,6 +90,11 @@ body {
   background-repeat: no-repeat;
   background-size: contain;
   background-color: rgba(255, 0, 0, 1);
+  background-image: url("./assets/player2.png");
+}
+
+.player.current-player {
+  background-color: rgba(0, 255, 0, 1);
   background-image: url("./assets/player1.png");
 }
 
