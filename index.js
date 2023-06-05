@@ -230,52 +230,43 @@ function movePlayer(uid, direction) {
           console.log("Moving player to: ", newX, newY, goal, gameState, maze);
           if (newX === goal.x && newY === goal.y) {
             // If the player has reached the goal, update the position and set the game status to "won"
-            gameStateRef
-              .update({
-                [`players.${uid}`]: { x: newX, y: newY },
-                status: "won",
-              })
-              .then(() => {
-                // winner element image to the winning player's image
-                if (uid === currentUser.uid) {
-                  document.getElementById(
-                    "winner"
-                  ).src = `assets/victoryP1.png`;
-
-                  // Update winning-player p element with the winning player's ID
-                  document.getElementById(
-                    "winning-player"
-                  ).textContent = `You Won`;
-                } else {
-                  document.getElementById(
-                    "winner"
-                  ).src = `assets/victoryP2.png`;
-
-                  // Update winning-player p element with the winning player's ID
-                  document.getElementById(
-                    "winning-player"
-                  ).textContent = `You Lost`;
-                }
-
-                // Remove class hidden from win-page element
-                document.getElementById("win-page").classList.remove("hidden");
-
-                // Hide the maze container
-                document.getElementById("mazeContainer").display = "none";
-
-                // Remove Hidden class from play again button
-                document
-                  .getElementById("playAgainButton")
-                  .classList.remove("hidden");
-
-                // Enable play again game button
-                document.getElementById("playAgainButton").disabled = false;
-
-                console.log("Document successfully updated!");
-              })
-              .catch((error) => {
-                console.error("Error updating document: ", error);
-              });
+            gameStateRef.update({
+              [`players.${uid}`]: { x: newX, y: newY },
+              status: "won",
+            })
+            .then(() => {
+              // Set the image source for the "winner" element based on the player's ID
+              if (uid === currentUser.uid) {
+                // Set the image source to victoryP1.png if the current player won
+                document.getElementById("winner").src = "assets/victoryP1.png";
+            
+                // Update the text content of the "winning-player" element to "You Won"
+                document.getElementById("winning-player").textContent = "You Won";
+              } else {
+                // Set the image source to victoryP2.png if the other player won
+                document.getElementById("winner").src = "assets/victoryP2.png";
+            
+                // Update the text content of the "winning-player" element to "You Lost"
+                document.getElementById("winning-player").textContent = "You Lost";
+              }
+            
+              // Remove the "hidden" class from the "win-page" element to display it
+              document.getElementById("win-page").classList.remove("hidden");
+            
+              // Hide the maze container by setting its display property to "none"
+              document.getElementById("mazeContainer").style.display = "none";
+            
+              // Remove the "hidden" class from the "playAgainButton" element to display it
+              document.getElementById("playAgainButton").classList.remove("hidden");
+            
+              // Enable the play again button by setting its disabled property to false
+              document.getElementById("playAgainButton").disabled = false;
+            
+              console.log("Document successfully updated!");
+            })
+            .catch((error) => {
+              console.error("Error updating document: ", error);
+            });
           } else {
             // Update the player's position in the game state
             gameStateRef
@@ -346,6 +337,10 @@ document.getElementById("startGameButton").addEventListener("click", () => {
 
 document.getElementById("playAgainButton").addEventListener("click", () => {
   const uid = firebase.auth().currentUser.uid;
+
+  // Remove the "hidden" class from the "mazeContainer" element to display it
+  document.getElementById("mazeContainer").classList.remove("hidden");
+  document.getElementById("mazeContainer").style.display = "grid";
 
   // Generate the maze and encode it
   let maze = generateMaze(20, 20);

@@ -13,13 +13,18 @@
     <p id="playerId">Loading...</p>
     <p id="gameStatus">Waiting for game to start...</p>
     <button id="startGameButton" disabled>Start Game</button>
-    <button id="playAgainButton" disabled class="hidden">Play Again</button>
-    <div id="mazeContainer"></div>
 
-    <div id="win-page" class="hidden">
-        <img id="winner">
-        <p id="winning-player"></p>
-    </div>
+    <span class="container">
+        <span id="win-page" class="win-page hidden">
+            <img id="winner">
+            <p id="winning-player"></p>
+        </span>
+
+        <span id="mazeContainer"></span>
+    </span >
+
+    <button id="playAgainButton" disabled class="hidden">Play Again</button>
+
     <script src="index.js"></script>
 </body>
 
