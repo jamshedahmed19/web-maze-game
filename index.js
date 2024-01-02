@@ -8,6 +8,22 @@ var firebaseConfig = {
   appId: "1:687851404990:web:3c443aa920cd89c857a8ef",
   measurementId: "G-8ZXD62MQSV",
 };
+function deleteGameState() {
+  // Reference to the "gameState" collection
+  const gameStateRef = db.collection("gameState");
+
+  // Reference to the "maze" document within the "gameState" collection
+  const mazeDocRef = gameStateRef.doc("maze");
+
+  // Delete the "maze" document
+  mazeDocRef.delete()
+    .then(() => {
+      console.log("Game state deleted successfully");
+    })
+    .catch((error) => {
+      console.error("Error deleting game state:", error);
+    });
+}
 
 firebase.initializeApp(firebaseConfig);
 
@@ -19,6 +35,8 @@ const auth = firebase.auth();
 auth.signInAnonymously().catch((error) => {
   console.log("Error signing in anonymously: ", error);
 });
+
+
 
 // Listen for changes in the authentication state
 auth.onAuthStateChanged((user) => {
@@ -34,6 +52,7 @@ auth.onAuthStateChanged((user) => {
 
     // Listen to changes in game state, if atleast 2 players are searching for a game, start the game
     // otherwise, wait for more players to join and update the player status to "searching"
+
     db.collection("gameState")
       .doc("maze")
       .collection("players")
@@ -228,45 +247,81 @@ function movePlayer(uid, direction) {
           maze[newY][newX] !== 1
         ) {
           console.log("Moving player to: ", newX, newY, goal, gameState, maze);
-          if (newX === goal.x && newY === goal.y) {
+          const anyPlayerWon = Object.values(gameState.players).some(player => player.x === goal.x && player.y === goal.y);
+
+          if (anyPlayerWon) {
+            // Update the game status to indicate a player has won
+            gameStateRef.update({
+              status: 'Some player won', // You may want to customize this message
+
+            })
+              .then(() => {
+                if (uid === currentUser.uid){
+                  document.getElementById("winner").src = "assets/loss.jpg";
+
+                  document.getElementById("winning-player").textContent = "You Lost";
+                  document.getElementById("win-page").classList.remove("hidden");
+
+                  // Hide the maze container by setting its display property to "none"
+                  document.getElementById("mazeContainer").style.display = "none";
+  
+                  // Remove the "hidden" class from the "playAgainButton" element to display it
+                  document.getElementById("playAgainButton").classList.remove("hidden");
+  
+                  // Enable the play again button by setting its disabled property to false
+                  document.getElementById("playAgainButton").disabled = false;
+  
+                  console.log("Document successfully updated!");
+                }
+                // Update the UI or perform any additional actions
+                // document.getElementById("winner").src = "assets/victoryP2.png";
+
+                // Update the text content of the "winning-player" element to "You Lost"
+            
+              })
+              .catch((error) => {
+                console.error("Error updating document: ", error);
+              });
+          } else if (newX === goal.x && newY === goal.y) {
             // If the player has reached the goal, update the position and set the game status to "won"
             gameStateRef.update({
               [`players.${uid}`]: { x: newX, y: newY },
-              status: "won",
+              status: `players.${uid} won`,
             })
-            .then(() => {
-              // Set the image source for the "winner" element based on the player's ID
-              if (uid === currentUser.uid) {
-                // Set the image source to victoryP1.png if the current player won
-                document.getElementById("winner").src = "assets/victoryP1.png";
-            
-                // Update the text content of the "winning-player" element to "You Won"
-                document.getElementById("winning-player").textContent = "You Won";
-              } else {
-                // Set the image source to victoryP2.png if the other player won
-                document.getElementById("winner").src = "assets/victoryP2.png";
-            
-                // Update the text content of the "winning-player" element to "You Lost"
-                document.getElementById("winning-player").textContent = "You Lost";
-              }
-            
-              // Remove the "hidden" class from the "win-page" element to display it
-              document.getElementById("win-page").classList.remove("hidden");
-            
-              // Hide the maze container by setting its display property to "none"
-              document.getElementById("mazeContainer").style.display = "none";
-            
-              // Remove the "hidden" class from the "playAgainButton" element to display it
-              document.getElementById("playAgainButton").classList.remove("hidden");
-            
-              // Enable the play again button by setting its disabled property to false
-              document.getElementById("playAgainButton").disabled = false;
-            
-              console.log("Document successfully updated!");
-            })
-            .catch((error) => {
-              console.error("Error updating document: ", error);
-            });
+              .then(() => {
+                // Set the image source for the "winner" element based on the player's ID
+                if (uid === currentUser.uid) {
+                  // Set the image source to victoryP1.png if the current player won
+                  document.getElementById("winner").src = "assets/victoryP1.png";
+
+                  // Update the text content of the "winning-player" element to "You Won"
+                  document.getElementById("winning-player").textContent = "You Won";
+                  
+                } else {
+                  // Set the image source to victoryP2.png if the other player won
+                  document.getElementById("winner").src = "assets/victoryP2.png";
+
+                  // Update the text content of the "winning-player" element to "You Lost"
+                  document.getElementById("winning-player").textContent = "You Lost";
+                }
+
+                // Remove the "hidden" class from the "win-page" element to display it
+                document.getElementById("win-page").classList.remove("hidden");
+
+                // Hide the maze container by setting its display property to "none"
+                document.getElementById("mazeContainer").style.display = "none";
+
+                // Remove the "hidden" class from the "playAgainButton" element to display it
+                document.getElementById("playAgainButton").classList.remove("hidden");
+
+                // Enable the play again button by setting its disabled property to false
+                document.getElementById("playAgainButton").disabled = false;
+
+                console.log("Document successfully updated!");
+              })
+              .catch((error) => {
+                console.error("Error updating document: ", error);
+              });
           } else {
             // Update the player's position in the game state
             gameStateRef
